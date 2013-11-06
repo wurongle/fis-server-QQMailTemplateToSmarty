@@ -2,8 +2,11 @@
 class QQMailTemplateToSmarty {
 
     public static function parse($content,$filePath,$treePath) {
+        $content = preg_replace('/<head>/i', '<head><meta charset = "utf-8">', $content);
+        $content = preg_replace('/(<meta[ ].*?charset=["]?)(gb2312|gbk)(["]?.*?>)/i', '$1utf-8$3', $content);
         $templateTree = self::createTemplateTree($treePath); 
         $content = self::parseIncludeFile($content,$templateTree,$filePath);
+        $content = self::removeSectionString($content);
         $content = self::parseTemplateStatement($content);
         $content = self::parseData($content);
         $content = self::parseValue($content);
@@ -90,7 +93,8 @@ class QQMailTemplateToSmarty {
                 $str = preg_replace('/\|/','||',$str);
                 $str = preg_replace('/&/','&&',$str);
                 $str = self::parseFunction($str);
-                $str = preg_replace_callback('/(==|\|\||!=|&&)([^=!|&]*)/',function($_matchs){
+                $str = preg_replace_callback('/(==|\|\||!=|&&)([^=!|&]*$)/',function($_matchs){
+                    //print_r($_matchs);
                     return $_matchs[1].'"'.preg_replace('/"/',"\\\"",$_matchs[2]).'"';
                 },$str);
                 $str = preg_replace('/[ ]/','',$_matchs[1]).' '.$str;
@@ -118,7 +122,7 @@ class QQMailTemplateToSmarty {
             },$matchs[1]);
             $str = preg_replace_callback('/\$([a-zA-Z0-9_.]+?)(.DATA)?\$/',function ($_matchs) {
                 return "$".$_matchs[1];
-            },$matchs[1]);
+            },$str);
             return '{%'.$str.'%}';
         },$content);
         $content = preg_replace_callback('/\$([a-zA-Z0-9_.]+?)(.DATA)?\$/',function ($matchs) {
@@ -176,6 +180,13 @@ class QQMailTemplateToSmarty {
         }else{
             return preg_replace('/\$###/','$v',$content);
         }
+    }
+
+    private static function removeSectionString($content){
+        $content = preg_replace_callback('/<%#([a-zA-Z_]+)%>([\s\S]*?)(<%#\/\1%>)/',function ($matchs) use (&$arr) {
+            return '';
+        },$content);
+        return $content;
     }
 
     private static function wrapString($string) {

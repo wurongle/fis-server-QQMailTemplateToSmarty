@@ -89,7 +89,9 @@ function file_list($path)
                 else
                 {
                     $_path = str_replace("/template","",$path);
-                    echo "<a href='$_path/$file' target='_blank'>$file</a><br>";
+                    if(preg_match('/\.html$/', $file)){
+                        echo "<a href='$_path/$file' target='_blank'>$file</a><br>";
+                    }
                 }
             }
         }
@@ -110,7 +112,7 @@ if(!Rewrite::match($path)) {
             $path = substr($path, 0, $len);
         }
         $split = explode('/', $path);
-        if('static' === $split[1] || 'hddocs' === $split[1] || preg_match('/\.html(\.php)?$/i',$split[count($split)-1])!=1){
+        if('static' === $split[1] || 'htdocs' === $split[1] || preg_match('/\.html(\.php)?$/i',$split[count($split)-1])!=1){
             $file = $root . substr($path, 1);
             if(is_file($file)){
                 $content_type = 'Content-Type: ';
@@ -171,6 +173,7 @@ if(!Rewrite::match($path)) {
                     $content_type .= 'text/plain';
                 }
                 header($content_type);
+
                 echo file_get_contents($file);
             } else {
                 Rewrite::header(404);
