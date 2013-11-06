@@ -26,7 +26,8 @@ function fis_debug_render_smarty($tpl = null, $data = array()) {
         //} else {
             //$path .= '.php';
         //}
-        $tpl = $root . 'template' . $path;
+        $tpl = substr($path,1);
+        //echo "$tpl";
     }
     require_once ($root . 'smarty/Smarty.class.php');
     $smarty = new Smarty();
@@ -63,6 +64,7 @@ function fis_debug_render_smarty($tpl = null, $data = array()) {
 }
 
 function fis_debug_template_rewrite_rule($rewrite, $url, $root, $matches){
+    
     if(file_exists($root . 'template/' . $rewrite)){
         header('Content-Type: text/html');
         fis_debug_render_smarty($rewrite);
@@ -108,7 +110,7 @@ if(!Rewrite::match($path)) {
             $path = substr($path, 0, $len);
         }
         $split = explode('/', $path);
-        if('static' === $split[1] || 'htdocs' === $split[1] || preg_match('/\.html$/i',$split[count($split)-1]) != 1){
+        if('static' === $split[1] || 'hddocs' === $split[1] || preg_match('/\.html(\.php)?$/i',$split[count($split)-1])!=1){
             $file = $root . substr($path, 1);
             if(is_file($file)){
                 $content_type = 'Content-Type: ';
