@@ -10,6 +10,7 @@ class QQMailTemplateToSmarty {
         $content = self::parseTemplateStatement($content);
         $content = self::parseData($content);
         $content = self::parseValue($content);
+        $content = preg_replace('/<%##[\w\W]*?##%>/', '', $content);
         return $content;
     }
 
@@ -58,14 +59,17 @@ class QQMailTemplateToSmarty {
     }
 
     private static function parseIncludeFile($content,$templateTree,$file) {
-        if(preg_match('/<%#include\((#?[a-zA-Z0-9-_#]+)\)%>/',$content)){
-            $content = preg_replace_callback('/<%#include\((#?[a-zA-Z0-9-_#]+)\)%>/',function ($matchs) use (&$templateTree,$file) {
+        //echo "$file";
+        if(preg_match('/<%#include\((#?[a-zA-Z0-9-_#.\/]+)\)%>/',$content)){
+            $content = preg_replace_callback('/<%#include\((#?[a-zA-Z0-9-_#.\/]+)\)%>/',function ($matchs) use (&$templateTree,$file) {
                 $filePath = $matchs[1];
                 if(substr($filePath,0,1) == '#'){
                     $filePath = pathinfo($file)['filename'].$filePath;
                 }
+                //print_r(pathinfo($file));
                 $str = explode('#',$filePath);
-                $realpath = pathinfo($file)['dirname'].'/'.$str[0].'.html';
+                $realpath = self::relative_path($file,$str[0]).(preg_match('/\.html$/', $str[0])?'':'.html');
+                //echo "$realpath";
                 $section = $str[1];
                 if($section){
                     $_section = $templateTree[$realpath][$section];
@@ -196,4 +200,26 @@ class QQMailTemplateToSmarty {
     private static function wrapStatementWithnewTemplate($content){
         return '{%'.$content.'%}';
     }
+
+    private static function relative_path ($a, $b, $separator = '/'){
+        $tmp_a = explode($separator,trim($a,$separator));
+        $tmp_b = explode($separator,trim($b,$separator));
+
+        //b是a的相对路径
+        array_pop($tmp_a);
+        foreach ($tmp_b as $value) {
+            if($value == '..'){
+                array_pop($tmp_a);
+                array_shift($tmp_b);
+            }else if($value == '.'){
+                array_shift($tmp_b);
+            }else{
+                break;
+            }
+        }
+        $relative_path = implode($separator, $tmp_a);
+        $relative_path .= $separator.implode($separator, $tmp_b);
+        return $relative_path;
+    }
+
 }

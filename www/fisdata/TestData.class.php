@@ -104,7 +104,7 @@ class TestData {
             $new_tmpl_file_name = $candidate_tmpl.".php";
             $filepath = $path.$candidate_tmpl;
             $content = file_get_contents($filepath);
-            $content = QQMailTemplateToSmarty::parse($content,$filepath,"./template/htmledition");
+            $content = QQMailTemplateToSmarty::parse($content,$filepath,"./template");
             $file = fopen($path.$new_tmpl_file_name,"w");
             fwrite($file,$content);
             fclose($file);
