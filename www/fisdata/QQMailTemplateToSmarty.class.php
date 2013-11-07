@@ -109,15 +109,15 @@ class QQMailTemplateToSmarty {
             }
 
         },$content);
-        $content = preg_replace('/==%}/','==""%}',$content);
-        $content = preg_replace('/!=%}/','!=""%}',$content);
+        $content = preg_replace('/(==|!=)(%}|\|\||&&)/','$1""$2',$content);
+        //$content = preg_replace('/!=%}/','!=""%}',$content);
         return $content;
     }
 
     private static function parseValue($content) {
         $content = preg_replace_callback('/{%(.*?)%}/',function ($matchs) {
             //print_r($matchs);
-            $str = preg_replace_callback('/(".*?)\$([a-zA-Z0-9_.]+?)(.DATA)?\$(.*?")/',function ($_matchs) {
+            $str = preg_replace_callback('/("[^|&]*?)\$([a-zA-Z0-9_.]+?)(.DATA)?\$(.*?")/',function ($_matchs) {
                 return $_matchs[1]."`$".$_matchs[2]."`".$_matchs[4];
             },$matchs[1]);
             $str = preg_replace_callback('/\$([a-zA-Z0-9_.]+?)(.DATA)?\$/',function ($_matchs) {
@@ -139,7 +139,7 @@ class QQMailTemplateToSmarty {
             $hasFun = true;
             foreach ($args as $key => $value) {
                 if($key == 0){
-                    $rest = ($next ? $args[0] : self::wrapString($args[0])).'|'.$matchs[1];
+                    $rest = (($next && substr($args[0],0,3)=="##[") ? $args[0] : self::wrapString($args[0])).'|'.$matchs[1];
                 }else{
                     $rest = $rest.':'.(preg_match('/^##\[/',$value) ? $value : self::wrapString($value) );
                 }
