@@ -2,6 +2,7 @@
 class QQMailTemplateToSmarty {
 
     public static function parse($content,$filePath,$treePath) {
+        $content = self::encodeContent($content); 
         $content = preg_replace('/<head>/i', '<head><meta charset = "utf-8">', $content);
         $content = preg_replace('/(<meta[ ].*?charset=["]?)(gb2312|gbk)(["]?.*?>)/i', '$1utf-8$3', $content);
         $templateTree = self::createTemplateTree($treePath); 
@@ -10,7 +11,6 @@ class QQMailTemplateToSmarty {
         $content = self::parseTemplateStatement($content);
         $content = self::parseData($content);
         $content = self::parseValue($content);
-        $content = preg_replace('/<%##[\w\W]*?##%>/', '', $content);
         return $content;
     }
 
@@ -44,6 +44,7 @@ class QQMailTemplateToSmarty {
         });
         foreach ($fileList as &$value) {
             $content = file_get_contents($value);
+            $content = self::encodeContent($content); 
             $templateTree[$value] = self::parseSection($content);
         }
         return $templateTree;
@@ -75,7 +76,7 @@ class QQMailTemplateToSmarty {
                     $_section = $templateTree[$realpath][$section];
                     return $_section;
                 }else{
-                    return file_get_contents($realpath);
+                    return self::encodeContent(file_get_contents($realpath));
                 }
             },$content);
             return self::parseIncludeFile($content,$templateTree,$file);
@@ -97,9 +98,8 @@ class QQMailTemplateToSmarty {
                 $str = preg_replace('/\|/','||',$str);
                 $str = preg_replace('/&/','&&',$str);
                 $str = self::parseFunction($str);
-                $str = preg_replace_callback('/(==|\|\||!=|&&)([^=!|&]*$)/',function($_matchs){
-                    //print_r($_matchs);
-                    return $_matchs[1].'"'.preg_replace('/"/',"\\\"",$_matchs[2]).'"';
+                $str = preg_replace_callback('/(==|\|\||!=|&&)([^=!\|&]*)($|&&|\|\|)/',function($_matchs){
+                    return $_matchs[1].'"'.preg_replace('/"/',"\\\"",$_matchs[2]).'"'.$_matchs[3];
                 },$str);
                 $str = preg_replace('/[ ]/','',$_matchs[1]).' '.$str;
                 return self::wrapStatementWithnewTemplate($str);
@@ -114,7 +114,7 @@ class QQMailTemplateToSmarty {
 
         },$content);
         $content = preg_replace('/(==|!=)(%}|\|\||&&)/','$1""$2',$content);
-        //$content = preg_replace('/!=%}/','!=""%}',$content);
+        $content = preg_replace('/<%##[\w\W]*?##%>/', '', $content);
         return $content;
     }
 
@@ -221,5 +221,35 @@ class QQMailTemplateToSmarty {
         $relative_path .= $separator.implode($separator, $tmp_b);
         return $relative_path;
     }
-
+    private static function encodeContent($content){   
+        if(!self::isUtf8($content)){
+            $content = iconv("gbk","utf-8",$content); 
+        }
+        return $content;
+    }
+    private static function isUtf8($str){
+        $c=0; $b=0;   
+        $bits=0;   
+        $len=strlen($str);   
+        for($i=0; $i<$len; $i++){   
+            $c=ord($str[$i]);   
+            if($c > 128){   
+                if(($c >= 254)) return false;   
+                elseif($c >= 252) $bits=6;   
+                elseif($c >= 248) $bits=5;   
+                elseif($c >= 240) $bits=4;   
+                elseif($c >= 224) $bits=3;   
+                elseif($c >= 192) $bits=2;   
+                else return false;   
+                if(($i+$bits) > $len) return false;   
+                while($bits > 1){   
+                    $i++;   
+                    $b=ord($str[$i]);   
+                    if($b < 128 || $b > 191) return false;   
+                    $bits--;   
+                }   
+            }   
+        }   
+        return true;   
+    }
 }
